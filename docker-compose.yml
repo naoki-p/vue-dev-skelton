@@ -1,0 +1,77 @@
+version: '3.9'
+services:
+  nginx:
+    container_name: nginx
+    image: nginx:latest
+    depends_on:
+      - vue
+      - express
+    ports:
+      - 80:80
+    volumes:
+      - ./nginx/conf:/etc/nginx/conf.d
+      - ./public:/usr/share/nginx/html/public
+  vue:
+    container_name: vue
+    image: node:lts
+    tty: true
+    environment:
+      - TZ=Asia/Tokyo
+      - NODE_ENV=development
+    user: node
+    volumes:
+      - ./frontapp:/home/node/frontapp
+    working_dir: /home/node/frontapp
+    ports:
+      - 8080:8080
+    # create scaffold app
+    # $ docker compose run --rm vue sh
+    # $ npm install @vue/cli
+    # $ npx vue create .
+    command: npm run serve
+  express:
+    container_name: express
+    image: node:lts
+    depends_on:
+      - mongo
+    tty: true
+    environment:
+      - TZ=Asia/Tokyo
+      - DEBUG=backendapp:*
+    user: node
+    volumes:
+      - ./backendapp:/home/node/backendapp
+    working_dir: /home/node/backendapp
+    ports:
+      - 3000:3000
+    # create scaffolding app
+    # $ docker compose run --rm express bash
+    # $ npm install express-generator
+    # $ npx express --no-view --git --force .
+    # $ npm install
+    command: npm start
+  batch:
+    container_name: batch
+    image: node:lts
+    depends_on:
+      - mongo
+    tty: true
+    environment:
+      - TZ=Asia/Tokyo
+    user: node
+    volumes:
+      - ./batch:/home/node/batch
+      - ./public:/home/node/public
+    working_dir: /home/node/batch
+  mongo:
+    image: mongo:latest
+    container_name: mongo
+    environment:
+      MONGO_INITDB_DATABASE: admin
+    ports:
+      - 27017:27017
+    volumes:
+      - ./mongo/init.js:/docker-entrypoint-initdb.d/init.js:ro
+      - ./mongo/data:/data/db
+    #command: [mongod, --quiet, --auth]
+    command: --auth --quiet --logpath /dev/null
